@@ -2,11 +2,29 @@
 Setup Module to setup Python Handlers for the sagemaker-studio-autoshutdown extension.
 """
 
+
+import functools
+import io
 import os
+import pipes
+import re
+import shlex
+import sys
+from collections import defaultdict
+from distutils import log
+from distutils.cmd import Command
+from distutils.command.build_py import build_py
+from distutils.command.sdist import sdist
+from os.path import join as pjoin
 from pathlib import Path
 from subprocess import CalledProcessError
 
 import setuptools
+from setuptools.command.bdist_egg import bdist_egg
+from setuptools.command.develop import develop
+
+# BEFORE importing distutils, remove MANIFEST. distutils doesn't properly update it when the contents of directories change.
+
 
 # Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
@@ -16,31 +34,9 @@ This file originates from the 'jupyter-packaging' package, and
 contains a set of useful utilities for including npm packages
 within a Python package.
 """
-from collections import defaultdict
-from os.path import join as pjoin
-import io
-import os
-import functools
-import pipes
-import re
-import shlex
-import subprocess
-import sys
 
-
-# BEFORE importing distutils, remove MANIFEST. distutils doesn't properly
-# update it when the contents of directories change.
 if os.path.exists("MANIFEST"):
     os.remove("MANIFEST")
-
-
-from distutils.cmd import Command
-from distutils.command.build_py import build_py
-from distutils.command.sdist import sdist
-from distutils import log
-
-from setuptools.command.develop import develop
-from setuptools.command.bdist_egg import bdist_egg
 
 try:
     from wheel.bdist_wheel import bdist_wheel
@@ -68,7 +64,10 @@ node_modules = pjoin(HERE, "node_modules")
 SEPARATORS = os.sep if os.altsep is None else os.sep + os.altsep
 
 npm_path = ":".join(
-    [pjoin(HERE, "node_modules", ".bin"), os.environ.get("PATH", os.defpath),]
+    [
+        pjoin(HERE, "node_modules", ".bin"),
+        os.environ.get("PATH", os.defpath),
+    ]
 )
 
 if "--skip-npm" in sys.argv:
@@ -96,8 +95,7 @@ def get_version(file, name="__version__"):
 
 
 def ensure_python(specs):
-    """Given a list of range specifiers for python, ensure compatibility.
-    """
+    """Given a list of range specifiers for python, ensure compatibility."""
     if not isinstance(specs, (list, tuple)):
         specs = [specs]
     v = sys.version_info
@@ -228,7 +226,7 @@ def run(cmd, **kwargs):
 
 def is_stale(target, source):
     """Test whether the target file/directory is stale based on the source
-       file/directory.
+    file/directory.
     """
     if not os.path.exists(target):
         return True
@@ -500,8 +498,7 @@ def _wrap_command(cmds, cls, strict=True):
 
 
 def _get_file_handler(package_data_spec, data_files_spec):
-    """Get a package_data and data_files handler command.
-    """
+    """Get a package_data and data_files handler command."""
 
     class FileHandler(BaseCommand):
         def run(self):
@@ -722,9 +719,6 @@ def _translate_glob_part(pat):
     return "".join(res)
 
 
-
-
-
 # The name of the project
 name = "sagemaker_studio_autoshutdown"
 
@@ -742,7 +736,8 @@ data_files_spec = [
         "etc/jupyter/jupyter_notebook_config.d",
         # "sagemaker_studio_autoshutdown/jupyter-config/jupyter_notebook_config.d",
         "jupyter-config",
-        "sagemaker_studio_autoshutdown.json"),
+        "sagemaker_studio_autoshutdown.json",
+    ),
 ]
 
 
@@ -761,7 +756,6 @@ cmdclass["pack_labext"] = pack_labext
 cmdclass.pop("develop")
 
 
-
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
@@ -777,13 +771,11 @@ setup_args = dict(
     url="https://aws.amazon.com/sagemaker/",
     author="Pavan Kumar Sunder",
     description="A JupyterLab extension to auto shutdown Idle Kernel Gateways in Sagemaker Studio",
-    long_description= long_description,
+    long_description=long_description,
     long_description_content_type="text/markdown",
-    cmdclass= cmdclass,
+    cmdclass=cmdclass,
     packages=setuptools.find_packages(),
-    install_requires=[
-        "boto3>=1.10.44"
-    ],
+    install_requires=["boto3>=1.10.44"],
     zip_safe=False,
     include_package_data=True,
     license="BSD-3-Clause",
@@ -799,7 +791,14 @@ setup_args = dict(
         "Programming Language :: Python :: 3.8",
         "Framework :: Jupyter",
     ],
-    extras_require={"dev": ["python-minifier", "black", "pytest", "jupyterlab~=1.2",]},
+    extras_require={
+        "dev": [
+            "python-minifier",
+            "black",
+            "pytest",
+            "jupyterlab~=1.2",
+        ]
+    },
 )
 
 

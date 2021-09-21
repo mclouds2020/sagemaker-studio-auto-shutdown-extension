@@ -37,6 +37,7 @@ COMMAND_SCRIPT = [
 # for next input:
 PROMPT_REGEX = r"bash-[\d\.]+\$ $"
 
+
 def get_domain_id() -> str:
     if ENV_DOMAIN_ID:
         return ENV_DOMAIN_ID
@@ -81,7 +82,9 @@ def run_commands(domain_id: str, user_profile_name: str):
 
     # Login URL like https://d-....studio.{AWSRegion}.sagemaker.aws/auth?token=...
     # API relative to https://d-....studio.{AWSRegion}.sagemaker.aws/jupyter/default
-    api_base_url = sagemaker_login_url.partition("?")[0].rpartition("/")[0] + "/jupyter/default"
+    api_base_url = (
+        sagemaker_login_url.partition("?")[0].rpartition("/")[0] + "/jupyter/default"
+    )
 
     # Need to make our requests via a session so cookies/etc persist:
     reqsess = requests.Session()
@@ -92,12 +95,16 @@ def run_commands(domain_id: str, user_profile_name: str):
     # it to start. Here we'll use the same 2sec /app polling logic as implemented by the SMStudio front-end
     # at the time of writing:
     if "_xsrf" not in reqsess.cookies:
-        logger.info(f"[{domain_id}/{user_profile_name}] Waiting for JupyterServer start-up...")
+        logger.info(
+            f"[{domain_id}/{user_profile_name}] Waiting for JupyterServer start-up..."
+        )
         app_status = "Unknown"
         base_url = sagemaker_login_url.partition("?")[0].rpartition("/")[0]
         while app_status not in {"InService", "Terminated"}:
             time.sleep(2)
-            app_status = reqsess.get(f"{base_url}/app?appType=JupyterServer&appName=default").text
+            app_status = reqsess.get(
+                f"{base_url}/app?appType=JupyterServer&appName=default"
+            ).text
             logger.debug(f"Got app_status {app_status}")
 
         if app_status == "InService":
@@ -106,7 +113,6 @@ def run_commands(domain_id: str, user_profile_name: str):
         else:
             raise ValueError(f"JupyterServer app in unusable status '{app_status}'")
 
-
     logger.info(f"[{domain_id}/{user_profile_name}] Creating terminal")
     terminal_resp = reqsess.post(
         f"{api_base_url}/api/terminals",
@@ -114,7 +120,7 @@ def run_commands(domain_id: str, user_profile_name: str):
         # that it can be put either in header or query string.
         # For more information on this pattern, you can see e.g:
         # https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html
-        params={ "_xsrf": reqsess.cookies["_xsrf"] },
+        params={"_xsrf": reqsess.cookies["_xsrf"]},
     )
     terminal = terminal_resp.json()
     terminal_name = terminal["name"]  # Typically e.g. '1'.
@@ -123,10 +129,12 @@ def run_commands(domain_id: str, user_profile_name: str):
     ws_base_url = "wss://" + api_base_url.partition("://")[2] + "/terminals/websocket"
     cookies = reqsess.cookies.get_dict()
 
-    logger.info(f"[{domain_id}/{user_profile_name}] Connecting to:\n{ws_base_url}/{terminal_name}")
+    logger.info(
+        f"[{domain_id}/{user_profile_name}] Connecting to:\n{ws_base_url}/{terminal_name}"
+    )
     ws = websocket.create_connection(
         f"{ws_base_url}/{terminal_name}",
-        cookie="; ".join(["%s=%s" %(i, j) for i, j in cookies.items()]),
+        cookie="; ".join(["%s=%s" % (i, j) for i, j in cookies.items()]),
     )
 
     try:
